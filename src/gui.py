@@ -1,3 +1,10 @@
+# FILE		    : gui.py
+# PROJECT	    : Preffered Job Finder
+# PROGRAMMER	: Nicholas Reilly
+# FIRST VERSION	: 2025-04-10
+# DESCRIPTION	: This script creates a GUI for tracking job postings from various employers. It allows users to add employers, scrape job postings, and send them via email. The GUI is built using the ttkbootstrap library for a modern look and feel.
+
+# Import all the required modules and libraries.
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from tkinter import messagebox
@@ -27,17 +34,44 @@ if not EMPLOYER_FILE.exists():
         with open(default_employer, "r") as src, open(EMPLOYER_FILE, "w") as dst:
             dst.write(src.read())
 
+# FUNCTION NAME: load_employers
+# DESCRIPTION: This function loads the employers from the JSON file.
+# PARAMETERS: None
+# RETURNS: A dictionary of employers where the key is the employer name and the value is the job board URL.
 def load_employers():
     if EMPLOYER_FILE.exists():
         with open(EMPLOYER_FILE, "r") as f:
             return json.load(f)
     return {}
 
+# FUNCTION NAME: save_employers
+# DESCRIPTION: This function saves the employers to the JSON file.
+# PARAMETERS: data: A dictionary of employers where the key is the employer name and the value is the job board URL.
+# RETURNS: None
 def save_employers(data):
     with open(EMPLOYER_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
+# Class: JobTrackerApp
+# DESCRIPTION: This class creates the GUI for the job tracker application. It allows users to add employers, view tracked employers, and run the job scraper and email functionality.
+# METHODS:
+#   - __init__: Initializes the GUI components and layout.
+#   - refresh_employer_list: Refreshes the list of tracked employers in the GUI.
+#   - add_employer: Adds a new employer to the tracked list and updates the GUI.
+#   - run_scraper_and_email: Runs the job scraper and sends an email with the job postings.
+#   - launch: Launches the GUI application.
+#   - resource_path: Returns the absolute path to a resource file, handling both bundled and non-bundled cases.
+#   - load_employers: Loads the employers from the JSON file.
+#   - save_employers: Saves the employers to the JSON file.
+#   - scrape_jobs: Scrapes job postings from the tracked employers.
+#   - send_email: Sends an email with the job postings using the yagmail library.
+
 class JobTrackerApp:
+
+    # FUNCTION NAME: __init__
+    # DESCRIPTION: This function initializes the GUI components and layout.
+    # PARAMETERS: root: The root window of the application.
+    # RETURNS: None
     def __init__(self, root):
         self.root = root
         self.root.title("🌇️ Municipality Job Tracker")
@@ -75,12 +109,20 @@ class JobTrackerApp:
 
         self.refresh_employer_list()
 
+    # FUNCTION NAME: refresh_employer_list
+    # DESCRIPTION: This function refreshes the list of tracked employers in the GUI.
+    # PARAMETERS: None
+    # RETURNS: None
     def refresh_employer_list(self):
         self.tree.delete(*self.tree.get_children())
         employers = load_employers()
         for name, url in employers.items():
             self.tree.insert("", END, values=(name, url))
 
+    # FUNCTION NAME: add_employer
+    # DESCRIPTION: This function adds a new employer to the tracked list and updates the GUI.
+    # PARAMETERS: None
+    # RETURNS: None
     def add_employer(self):
         name = self.name_entry.get().strip()
         url = self.url_entry.get().strip()
@@ -98,6 +140,10 @@ class JobTrackerApp:
         self.refresh_employer_list()
         messagebox.showinfo("Added", f"{name} was added to tracking.")
 
+    # FUNCTION NAME: run_scraper_and_email
+    # DESCRIPTION: This function runs the job scraper and sends an email with the job postings.
+    # PARAMETERS: None
+    # RETURNS: None
     def run_scraper_and_email(self):
         self.scrape_button.config(text="Running...", state=DISABLED)
         self.root.update()
@@ -116,6 +162,10 @@ class JobTrackerApp:
 
         self.scrape_button.config(text="🔍 Run Scraper + Email", state=NORMAL)
 
+# FUNCTION NAME: launch
+# DESCRIPTION: This function launches the GUI application.
+# PARAMETERS: None
+# RETURNS: None
 def launch():
     root = ttk.Window(themename="flatly")
     app = JobTrackerApp(root)

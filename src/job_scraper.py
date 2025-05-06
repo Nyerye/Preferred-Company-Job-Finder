@@ -1,5 +1,10 @@
-# src/job_scraper.py
+# FILE		    : job_scarper.py
+# PROJECT	    : Preffered Job Finder
+# PROGRAMMER	: Nicholas Reilly
+# FIRST VERSION	: 2025-04-10
+# DESCRIPTION	: This script scrapes job postings from various employers' websites based on specific job titles. It uses BeautifulSoup for web scraping and regex for keyword matching. The scraped jobs are stored in a JSON file in the user's AppData directory. The script also includes functions to load employer URLs and scrape jobs from them.
 
+# Import the libraries required for web scraping and data handling.
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -40,18 +45,28 @@ job_titles = [
 # Precompiled regex
 pattern = re.compile(r'\b(?:' + '|'.join(map(re.escape, job_titles)) + r')\b', flags=re.IGNORECASE)
 
-
+#FUNCTION NAME: keyword_match
+# DESCRIPTION: This function checks if the given text contains any of the specified job titles.
+# PARAMETERS:
+#   - text: A string containing the text to be checked.
+# RETURNS: True if any job title is found in the text, False otherwise.
 def keyword_match(text: str) -> bool:
     return bool(pattern.search(text))
 
-
+# FUNCTION NAME: load_employer_urls
+# DESCRIPTION: This function loads the employer URLs from the JSON file.
+# PARAMETERS: None
+# RETURNS: A dictionary of employers where the key is the employer name and the value is the job board URL.
 def load_employer_urls() -> dict:
     if os.path.exists(EMPLOYER_FILE):
         with open(EMPLOYER_FILE, "r") as f:
             return json.load(f)
     return {}
 
-
+# FUNCTION NAME: save_employer_urls
+# DESCRIPTION: This function saves the employer URLs to the JSON file.
+# PARAMETERS: data: A dictionary of employers where the key is the employer name and the value is the job board URL.
+# RETURNS: None
 def scrape_city(city: str, url: str) -> list:
     jobs = []
     try:
@@ -71,7 +86,10 @@ def scrape_city(city: str, url: str) -> list:
         print(f"[ERROR] Could not scrape {city}: {e}")
     return jobs
 
-
+# FUNCTION NAME: scrape_jobs
+# DESCRIPTION: This function scrapes job postings from the tracked employers.
+# PARAMETERS: None
+# RETURNS: A list of job postings, where each job is a dictionary containing 'city', 'title', and 'url'.
 def scrape_jobs() -> list:
     all_jobs = []
     for city, url in load_employer_urls().items():
