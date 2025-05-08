@@ -1,73 +1,79 @@
-# FILE		    : job_scarper.py
-# PROJECT	    : Preffered Job Finder
-# PROGRAMMER	: Nicholas Reilly
-# FIRST VERSION	: 2025-04-10
-# DESCRIPTION	: This script scrapes job postings from various employers' websites based on specific job titles. It uses BeautifulSoup for web scraping and regex for keyword matching. The scraped jobs are stored in a JSON file in the user's AppData directory. The script also includes functions to load employer URLs and scrape jobs from them.
+# FILE            : job_scraper.py
+# PROJECT         : Preferred Job Finder
+# PROGRAMMER      : Nicholas Reilly
+# FIRST VERSION   : 2025-04-10
+# DESCRIPTION     : This script scrapes job postings from various employers' websites based on specific job titles. 
+#                   It uses BeautifulSoup for web scraping and regex for keyword matching. 
+#                   The scraped jobs are stored in a JSON file in the user's AppData directory.
 
-# Import the libraries required for web scraping and data handling.
+import os
+import json
 import requests
 from bs4 import BeautifulSoup
 import re
-import json
-import os
 from pathlib import Path
-
 
 __all__ = ["scrape_jobs", "load_employer_urls"]
 
-# Actual path to data/employers.json for both development and exe
+# Set the directory for persistent data
 APP_DIR = Path(os.getenv("APPDATA")) / "MunicipalJobTracker"
 APP_DIR.mkdir(parents=True, exist_ok=True)
 EMPLOYER_FILE = APP_DIR / "employers.json"
+JOB_TITLES_FILE = APP_DIR / "job_titles.json"
 
-# Job title keywords
-job_titles = [
-    "IT Support Specialist", "IT Support Technician", "Service Desk Analyst", "Help Desk Analyst",
-    "Desktop Support Technician", "Technical Support Specialist", "End User Support Technician",
-    "IT Operations Analyst", "Systems Analyst", "Business Systems Analyst", "IT Analyst",
-    "Network Analyst", "Network Administrator", "Network Engineer", "Infrastructure Analyst",
-    "Infrastructure Specialist", "System Administrator", "Linux Administrator", "Windows Administrator",
-    "Cloud Administrator", "Cloud Engineer", "Cloud Solutions Architect", "Cybersecurity Analyst",
-    "Security Analyst", "Information Security Analyst", "Security Engineer", "Security Administrator",
-    "DevOps Engineer", "Site Reliability Engineer", "Software Developer", "Software Engineer",
-    "Application Developer", "Web Developer", "Frontend Developer", "Backend Developer",
-    "Full Stack Developer", "Embedded Systems Developer", "Database Administrator", "Data Analyst",
-    "Data Engineer", "Data Scientist", "IT Project Manager", "IT Manager", "IT Coordinator",
-    "IT Consultant", "Solutions Architect", "Enterprise Architect", "QA Analyst",
-    "Test Automation Engineer", "Technical Business Analyst", "IT Compliance Analyst",
-    "Technical Account Manager", "Field Support Technician", "IT Trainer", "IT Asset Manager",
-    "IT Procurement Specialist", "Incident Response Analyst", "Vulnerability Analyst",
-    "Penetration Tester", "SOC Analyst", "IT Auditor", "IT Generalist", "Integration Specialist",
-    "CRM Developer", "ERP Analyst", "IT Systems Engineer", "IT Change Manager", "IT Release Manager",
-    "Application Support Analyst", "IT Monitoring Specialist", "IT Governance Analyst", "Infrastructure Engineer"
-]
+# FUNCTION NAME: load_job_titles
+# DESCRIPTION: Loads job titles from a JSON file. If the file doesn't exist or is empty, it returns an empty list.
+# INPUT: None
+# OUTPUT: A list of job titles.
+def load_job_titles():
+    if JOB_TITLES_FILE.exists():
+        with open(JOB_TITLES_FILE, "r") as file:
+            titles = json.load(file)
+            if titles:
+                print(f"[INFO] Loaded {len(titles)} job titles.")
+                return titles
+            else:
+                print("[WARNING] No job titles found in job_titles.json. Please add some using the Job Titles Manager.")
+                return []
+    else:
+        print("[ERROR] job_titles.json not found. Please add job titles using the Job Titles Manager.")
+        return []
 
-# Precompiled regex
-pattern = re.compile(r'\b(?:' + '|'.join(map(re.escape, job_titles)) + r')\b', flags=re.IGNORECASE)
-
-#FUNCTION NAME: keyword_match
-# DESCRIPTION: This function checks if the given text contains any of the specified job titles.
-# PARAMETERS:
-#   - text: A string containing the text to be checked.
-# RETURNS: True if any job title is found in the text, False otherwise.
-def keyword_match(text: str) -> bool:
-    return bool(pattern.search(text))
+# FUNCTION NAME: build_title_pattern
+# DESCRIPTION: Builds a regex pattern from a list of job titles for case-insensitive matching.
+# INPUT: A list of job titles.
+# OUTPUT: A compiled regex pattern.
+def build_title_pattern(titles):
+    if titles:
+        return re.compile(r'\b(?:' + '|'.join(map(re.escape, titles)) + r')\b', flags=re.IGNORECASE)
+    else:
+        return None
 
 # FUNCTION NAME: load_employer_urls
-# DESCRIPTION: This function loads the employer URLs from the JSON file.
-# PARAMETERS: None
-# RETURNS: A dictionary of employers where the key is the employer name and the value is the job board URL.
+# DESCRIPTION: Loads employer URLs from a JSON file. If the file doesn't exist, it returns an empty dictionary.
+# INPUT: None
+# OUTPUT: A dictionary of employer URLs.
 def load_employer_urls() -> dict:
-    if os.path.exists(EMPLOYER_FILE):
+    if EMPLOYER_FILE.exists():
         with open(EMPLOYER_FILE, "r") as f:
             return json.load(f)
-    return {}
+    else:
+        print("[ERROR] employers.json not found. Please add employers.")
+        return {}
 
-# FUNCTION NAME: save_employer_urls
-# DESCRIPTION: This function saves the employer URLs to the JSON file.
-# PARAMETERS: data: A dictionary of employers where the key is the employer name and the value is the job board URL.
-# RETURNS: None
-def scrape_city(city: str, url: str) -> list:
+# FUNCTION NAME: keyword_match
+# DESCRIPTION: Checks if a given text matches any of the job titles using regex.
+# INPUT: A string of text and a compiled regex pattern.
+# OUTPUT: True if a match is found, False otherwise.
+def keyword_match(text: str, pattern) -> bool:
+    return bool(pattern.search(text))
+
+
+# FUNCTION NAME: scrape_city
+# DESCRIPTION: Scrapes job postings from a given city URL. It looks for links that match the job titles.
+# INPUT: A city name, a URL to scrape, and a compiled regex pattern.
+# OUTPUT: A list of dictionaries containing job titles and URLs.
+def scrape_city(city: str, url: str, pattern) -> list:
     jobs = []
     try:
         response = requests.get(url, timeout=10)
@@ -75,7 +81,7 @@ def scrape_city(city: str, url: str) -> list:
         for link in soup.find_all("a"):
             text = link.get_text(strip=True)
             href = link.get("href", "")
-            if keyword_match(text):
+            if keyword_match(text, pattern):
                 full_url = href if href.startswith("http") else f"{url.rstrip('/')}/{href.lstrip('/')}"
                 jobs.append({
                     "city": city,
@@ -87,12 +93,34 @@ def scrape_city(city: str, url: str) -> list:
     return jobs
 
 # FUNCTION NAME: scrape_jobs
-# DESCRIPTION: This function scrapes job postings from the tracked employers.
-# PARAMETERS: None
-# RETURNS: A list of job postings, where each job is a dictionary containing 'city', 'title', and 'url'.
+# DESCRIPTION: Main function to scrape jobs from all employers. It loads job titles, builds a regex pattern,
+#              loads employer URLs, and scrapes each city
+# INPUT: None
+# OUTPUT: A list of dictionaries containing job titles and URLs.
 def scrape_jobs() -> list:
+    # Load job titles and build the search pattern
+    job_titles = load_job_titles()
+    if not job_titles:
+        print("[ERROR] No job titles to search for. Exiting.")
+        return []
+
+    pattern = build_title_pattern(job_titles)
+
+    # Load employer URLs
+    employers = load_employer_urls()
+    if not employers:
+        print("[ERROR] No employers to scrape. Exiting.")
+        return []
+
+    # Scrape jobs for each employer
     all_jobs = []
-    for city, url in load_employer_urls().items():
-        print(f"Scraping {city}...")
-        all_jobs.extend(scrape_city(city, url))
+    for city, url in employers.items():
+        print(f"[INFO] Scraping {city}...")
+        all_jobs.extend(scrape_city(city, url, pattern))
+
+    print(f"[INFO] Found {len(all_jobs)} jobs.")
     return all_jobs
+
+# Run the scraper if executed directly
+if __name__ == "__main__":
+    scrape_jobs()

@@ -1,13 +1,13 @@
-# FILE		    : gui.py
-# PROJECT	    : Preffered Job Finder
-# PROGRAMMER	: Nicholas Reilly
-# FIRST VERSION	: 2025-04-10
-# DESCRIPTION	: This script creates a GUI for tracking job postings from various employers. It allows users to add employers, scrape job postings, and send them via email. The GUI is built using the ttkbootstrap library for a modern look and feel.
+# FILE            : gui.py
+# PROJECT         : Preferred Job Finder
+# PROGRAMMER      : Nicholas Reilly
+# FIRST VERSION   : 2025-04-10
+# DESCRIPTION     : This script creates a GUI for tracking job postings from various employers. 
+#                   It allows users to add employers, scrape job postings, and manage job titles.
 
-# Import all the required modules and libraries.
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from tkinter import messagebox
+from tkinter import messagebox, Listbox
 import json
 import os
 import sys
@@ -21,75 +21,43 @@ APP_DIR = Path(os.getenv("APPDATA")) / "MunicipalJobTracker"
 APP_DIR.mkdir(parents=True, exist_ok=True)
 EMPLOYER_FILE = APP_DIR / "employers.json"
 JOBS_FILE = APP_DIR / "jobs.csv"
+JOB_TITLES_FILE = APP_DIR / "job_titles.json"
 
-# Fallback to bundled file (read-only)
-def resource_path(relative_path: str) -> Path:
-    base_path = getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)
-    return Path(base_path) / relative_path
+# Load job titles from JSON file
+def load_job_titles():
+    if JOB_TITLES_FILE.exists():
+        with open(JOB_TITLES_FILE, "r") as file:
+            return json.load(file)
+    return []
 
-# Copy default data from bundled folder if not already present
-if not EMPLOYER_FILE.exists():
-    default_employer = resource_path("data/employers.json")
-    if default_employer.exists():
-        with open(default_employer, "r") as src, open(EMPLOYER_FILE, "w") as dst:
-            dst.write(src.read())
-
-# FUNCTION NAME: load_employers
-# DESCRIPTION: This function loads the employers from the JSON file.
-# PARAMETERS: None
-# RETURNS: A dictionary of employers where the key is the employer name and the value is the job board URL.
-def load_employers():
-    if EMPLOYER_FILE.exists():
-        with open(EMPLOYER_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-# FUNCTION NAME: save_employers
-# DESCRIPTION: This function saves the employers to the JSON file.
-# PARAMETERS: data: A dictionary of employers where the key is the employer name and the value is the job board URL.
-# RETURNS: None
-def save_employers(data):
-    with open(EMPLOYER_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+# Save job titles to JSON file
+def save_job_titles(titles):
+    with open(JOB_TITLES_FILE, "w") as file:
+        json.dump(titles, file, indent=4)
 
 # Class: JobTrackerApp
-# DESCRIPTION: This class creates the GUI for the job tracker application. It allows users to add employers, view tracked employers, and run the job scraper and email functionality.
-# METHODS:
-#   - __init__: Initializes the GUI components and layout.
-#   - refresh_employer_list: Refreshes the list of tracked employers in the GUI.
-#   - add_employer: Adds a new employer to the tracked list and updates the GUI.
-#   - run_scraper_and_email: Runs the job scraper and sends an email with the job postings.
-#   - launch: Launches the GUI application.
-#   - resource_path: Returns the absolute path to a resource file, handling both bundled and non-bundled cases.
-#   - load_employers: Loads the employers from the JSON file.
-#   - save_employers: Saves the employers to the JSON file.
-#   - scrape_jobs: Scrapes job postings from the tracked employers.
-#   - send_email: Sends an email with the job postings using the yagmail library.
-
 class JobTrackerApp:
 
-    # FUNCTION NAME: __init__
-    # DESCRIPTION: This function initializes the GUI components and layout.
-    # PARAMETERS: root: The root window of the application.
-    # RETURNS: None
     def __init__(self, root):
         self.root = root
         self.root.title("🌇️ Municipality Job Tracker")
-        self.root.geometry("850x600")
-        self.root.resizable(False, False)
+        self.root.geometry("1200x800")
+        self.root.resizable(True, True)
 
         self.style = ttk.Style("flatly")
 
+        # Employer Management Section
         self.employer_frame = ttk.Labelframe(root, text="Tracked Employers", padding=10)
         self.employer_frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
 
-        self.tree = ttk.Treeview(self.employer_frame, columns=("Name", "URL"), show="headings", height=12)
+        self.tree = ttk.Treeview(self.employer_frame, columns=("Name", "URL"), show="headings", height=10)
         self.tree.heading("Name", text="Employer Name")
         self.tree.heading("URL", text="Job Board URL")
-        self.tree.column("Name", width=200)
-        self.tree.column("URL", width=600)
+        self.tree.column("Name", width=300)
+        self.tree.column("URL", width=800)
         self.tree.pack(fill=BOTH, expand=True)
 
+        # Add New Employer Section
         self.add_frame = ttk.Labelframe(root, text="➕ Add New Employer", padding=10)
         self.add_frame.pack(fill=X, padx=20, pady=10)
 
@@ -101,28 +69,67 @@ class JobTrackerApp:
         self.url_entry = ttk.Entry(self.add_frame, width=50)
         self.url_entry.grid(row=0, column=3, padx=5)
 
-        self.add_button = ttk.Button(self.add_frame, text="Add Employer", command=self.add_employer, bootstyle=SUCCESS)
+        self.add_button = ttk.Button(
+        self.add_frame, text="Add Employer", command=self.add_employer, bootstyle=SUCCESS
+        )
         self.add_button.grid(row=1, column=0, columnspan=5, pady=(10, 0))
 
-        self.scrape_button = ttk.Button(root, text="🔍 Run Scraper + Email", command=self.run_scraper_and_email, bootstyle=PRIMARY)
+        # Remove Employer Button
+        self.remove_employer_button = ttk.Button(
+            self.employer_frame, 
+            text="Remove Selected Employer", 
+            command=self.remove_employer, 
+            bootstyle=DANGER
+        )
+        self.remove_employer_button.pack(pady=5)
+
+        # Job Title Management Section
+        self.title_frame = ttk.Labelframe(root, text="🔍 Manage Job Titles", padding=10)
+        self.title_frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
+
+        ttk.Label(self.title_frame, text="Enter Job Title").grid(row=0, column=0, sticky=W, padx=5)
+        self.title_entry = ttk.Entry(self.title_frame, width=30)
+        self.title_entry.grid(row=0, column=1, padx=5)
+
+        self.add_title_button = ttk.Button(
+            self.title_frame, 
+            text="Add Job Title", 
+            command=self.add_job_title, 
+            bootstyle=SUCCESS
+        )
+        self.add_title_button.grid(row=0, column=2, padx=5)
+
+        self.remove_title_button = ttk.Button(
+            self.title_frame, 
+            text="Remove Selected", 
+            command=self.remove_job_title, 
+            bootstyle=DANGER
+        )
+        self.remove_title_button.grid(row=0, column=3, padx=5)
+
+        self.title_listbox = Listbox(self.title_frame, width=70, height=10)
+        self.title_listbox.grid(row=1, column=0, columnspan=4, padx=5, pady=10)
+
+        # Load existing job titles on startup
+        self.refresh_job_title_list()
+
+        # Scraper Button
+        self.scrape_button = ttk.Button(
+            root, 
+            text="🔍 Run Scraper + Email", 
+            command=self.run_scraper_and_email, 
+            bootstyle=PRIMARY
+        )
         self.scrape_button.pack(pady=10)
 
         self.refresh_employer_list()
 
-    # FUNCTION NAME: refresh_employer_list
-    # DESCRIPTION: This function refreshes the list of tracked employers in the GUI.
-    # PARAMETERS: None
-    # RETURNS: None
     def refresh_employer_list(self):
         self.tree.delete(*self.tree.get_children())
         employers = load_employers()
         for name, url in employers.items():
             self.tree.insert("", END, values=(name, url))
 
-    # FUNCTION NAME: add_employer
-    # DESCRIPTION: This function adds a new employer to the tracked list and updates the GUI.
-    # PARAMETERS: None
-    # RETURNS: None
     def add_employer(self):
         name = self.name_entry.get().strip()
         url = self.url_entry.get().strip()
@@ -140,10 +147,37 @@ class JobTrackerApp:
         self.refresh_employer_list()
         messagebox.showinfo("Added", f"{name} was added to tracking.")
 
-    # FUNCTION NAME: run_scraper_and_email
-    # DESCRIPTION: This function runs the job scraper and sends an email with the job postings.
-    # PARAMETERS: None
-    # RETURNS: None
+    def refresh_job_title_list(self):
+        self.title_listbox.delete(0, END)
+        for title in load_job_titles():
+            self.title_listbox.insert(END, title)
+
+    def add_job_title(self):
+        title = self.title_entry.get().strip()
+        if title:
+            titles = load_job_titles()
+            if title not in titles:
+                titles.append(title)
+                save_job_titles(titles)
+                self.refresh_job_title_list()
+                self.title_entry.delete(0, END)
+                messagebox.showinfo("Added", f"'{title}' was added to job titles.")
+            else:
+                messagebox.showinfo("Duplicate", f"'{title}' is already in the list.")
+        else:
+            messagebox.showwarning("Empty Input", "Please enter a job title.")
+
+    def remove_job_title(self):
+        try:
+            selected_index = self.title_listbox.curselection()[0]
+            titles = load_job_titles()
+            removed_title = titles.pop(selected_index)
+            save_job_titles(titles)
+            self.refresh_job_title_list()
+            messagebox.showinfo("Removed", f"'{removed_title}' was removed from job titles.")
+        except IndexError:
+            messagebox.showwarning("No Selection", "Please select a job title to remove.")
+
     def run_scraper_and_email(self):
         self.scrape_button.config(text="Running...", state=DISABLED)
         self.root.update()
@@ -162,10 +196,31 @@ class JobTrackerApp:
 
         self.scrape_button.config(text="🔍 Run Scraper + Email", state=NORMAL)
 
-# FUNCTION NAME: launch
-# DESCRIPTION: This function launches the GUI application.
-# PARAMETERS: None
-# RETURNS: None
+    def remove_employer(self):
+        try:
+            selected_item = self.tree.selection()[0]
+            name, url = self.tree.item(selected_item, "values")
+            employers = load_employers()
+            if name in employers:
+                del employers[name]
+                save_employers(employers)
+                self.refresh_employer_list()
+                messagebox.showinfo("Removed", f"'{name}' has been removed from the tracked employers.")
+        except IndexError:
+            messagebox.showwarning("No Selection", "Please select an employer to remove.")
+
+    # Load employers from the JSON file
+def load_employers():
+    if EMPLOYER_FILE.exists():
+        with open(EMPLOYER_FILE, "r") as file:
+            return json.load(file)
+    return {}
+
+# Save employers to the JSON file
+def save_employers(employers):
+    with open(EMPLOYER_FILE, "w") as file:
+        json.dump(employers, file, indent=4)
+
 def launch():
     root = ttk.Window(themename="flatly")
     app = JobTrackerApp(root)
