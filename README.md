@@ -5,110 +5,93 @@
 [![Made with ❤️ by Nicholas Reilly](https://img.shields.io/badge/made%20by-Nicholas%20Reilly-orange.svg)](https://github.com/yourusername)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)]()
 
-A Python-based job monitoring tool that scrapes and filters **IT-related job postings** from municipality websites across Ontario, Canada. Designed to keep job seekers in the tech space informed — automatically.
+# Preferred Company Job Finder
+
+### 🌟 Overview
+The **Preferred Company Job Finder** is a Python-based desktop application designed to streamline job tracking from multiple employers. It features a modern graphical user interface (GUI) and automated email notifications for new job postings.
 
 ---
 
-## 🚀 Features
-
-- ✅ Scrapes official municipal job boards from **14+ cities & regions**
-- ✅ Filters jobs by **regex-matched IT titles** (e.g. Developer, Analyst, Admin, etc.)
-- ✅ Sends **email alerts** when matches are found
-- ✅ Saves matches to a **timestamped CSV** for offline tracking
-- ✅ Built for easy extensibility (add more cities, filters, output formats)
-
----
-
-## 📍 Municipalities Tracked
-
-- City of Guelph
-- City of Cambridge
-- City of Kitchener
-- City of Waterloo
-- City of Toronto
-- City of Mississauga
-- Norfolk County
-- City of Hamilton
-- City of Brantford
-- City of London
-- Wellington County
-- Region of Waterloo
-- City of Burlington
-- Halton Region
+### ⚙️ Technologies Used
+- **Python 3.11**: Core scripting language
+- **ttkbootstrap**: Modern GUI styling
+- **tkinter**: GUI framework
+- **Pandas**: Data processing and export
+- **BeautifulSoup**: Web scraping
+- **Requests**: HTTP requests for web content
+- **PyInstaller**: Packaging the application into an executable
+- **Inno Setup**: Creating the Windows installer
 
 ---
 
-## 🛠️ Tech Stack
-
-- **Python 3.11+**
-- `requests`, `beautifulsoup4`, `lxml` – HTML scraping
-- `yagmail`, `python-dotenv` – email automation via Gmail
-- `csv`, `re`, `schedule` – filtering, storage & optional scheduling
-
----
-
-## 📦 Installation
-
-```bash
-git clone https://github.com/yourusername/municipality-job-tracker.git
-cd municipality-job-tracker
-python -m venv venv
-.venv\Scripts\activate       # Windows
-pip install -r requirements.txt
-```
+### 📝 Features
+- Add and manage tracked employers and job titles
+- Automated email notifications for new job postings
+- Modern GUI with ttkbootstrap styling
+- Persistent data storage in **AppData**
+- Professional Windows installer with desktop and start menu shortcuts
 
 ---
 
-## 🔐 Setup `.env`
+### 🚀 Installation Guide
 
-Create a `.env` file in the project root:
+1. **Download the Installer:**
+   - Visit the [GitHub Releases page](https://github.com/Nyerye/Preferred-Company-Job-Finder/releases/tag/v2.1.9).
+   - Extract the contents of the downloaded archive.
 
-```env
-SENDER_EMAIL=your_gmail_here@gmail.com
-SENDER_PASSWORD=your_gmail_app_password
-RECIPIENT_EMAIL=your_email_or_same_as_sender
-```
-
-> ⚠️ Gmail accounts must use [App Passwords](https://myaccount.google.com/apppasswords) (2FA required).
+2. **Run the Installer:**
+   - Run the `PreferredCompanyJobFinderInstaller.exe` and **accept all defaults**.
 
 ---
 
-## ▶️ Usage
+### 📧 Setting Up Email Notifications
 
-Run the tracker manually:
+Since the application uses Gmail to send notifications, follow these steps to configure your email:
 
-```bash
-python src/main.py
-```
+1. **Create a Gmail Account:**
+   - If you don’t want to use your personal email, create a dedicated Gmail account for this application.
+   - You can set up mail forwarding to your preferred email.
 
-This will:
-1. Scrape all job boards
-2. Filter based on IT job titles
-3. Save results to `data/jobs.csv`
-4. Send matches via email
+2. **Enable App Passwords:**
+   - Visit [Google App Passwords](https://myaccount.google.com/apppasswords).
+   - Generate an **app password** for "Mail" on "Windows".
+   - Copy the 16-character password (no spaces or dashes).
+
+3. **Configure the `.env` File:**
+   - Press **`Win + R`** to open the Run dialog.
+   - Enter **`%APPDATA%\MunicipalJobTracker`** and press **Enter**.
+   - Create a new file named **`.env`** with the following content:
+     ```plaintext
+     SENDER_EMAIL=your_gmail_address_here
+     SENDER_PASSWORD=your_16_character_app_password_here
+     RECIPIENT_EMAIL=your_gmail_address_here
+     ```
+   - **Important:** Make sure the file has no `.txt` extension and is named exactly **`.env`**.
+
+4. **Launch the Application:**
+   - Use the desktop shortcut or start menu entry to open the application.
+   - Enjoy automated job tracking and notifications!
+
+---
+
+### 🛠️ Troubleshooting
+
+- **App Not Launching:** Make sure all required files are present in the installation directory.
+- **Emails Not Sending:** Double-check your **`.env`** file for typos and ensure **App Passwords** are enabled in your Gmail settings.
+- **Updating the App:** Simply run the latest installer to update to the newest version.
 
 ---
 
-## ⏱️ Automation (Optional)
+### 📬 Feedback and Issues
 
-To run the script daily using Windows Task Scheduler or `cron`, simply point to `src/main.py` in a scheduled job.
-
----
-
-## ✨ Sample Output
-
-| Timestamp           | City              | Title                    | URL                            |
-|---------------------|-------------------|--------------------------|--------------------------------|
-| 2025-04-14 09:23:11 | City of Toronto   | Systems Analyst          | jobs.toronto.ca/...            |
-| 2025-04-14 09:23:11 | City of Hamilton  | Service Desk Technician  | hamilton.ca/jobs/...           |
+If you encounter any bugs or have feature requests, please create an **Issue** in the [GitHub repository](https://github.com/Nyerye/Preferred-Company-Job-Finder/issues).
 
 ---
 
-## 🤝 Contributing
+### 📃 License
 
-I will NOT accept any changes to the code. You are more than welcome to take this and tweak it to your desires.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
----
 
 ## 💼 About the Author
 
