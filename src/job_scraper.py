@@ -72,17 +72,22 @@ def keyword_match(text: str, pattern) -> bool:
 # FUNCTION NAME: scrape_city
 # DESCRIPTION: Scrapes job postings from a given city URL. It looks for links that match the job titles.
 # INPUT: A city name, a URL to scrape, and a compiled regex pattern.
-# OUTPUT: A list of dictionaries containing job titles and URLs.
+# OUTPUT: A list of dictionaries containing unique job titles and URLs.
 def scrape_city(city: str, url: str, pattern) -> list:
     jobs = []
+    seen_jobs = set()  # Track unique title-URL pairs to prevent duplicates
     try:
         response = requests.get(url, timeout=10)
         soup = BeautifulSoup(response.text, "lxml")
         for link in soup.find_all("a"):
             text = link.get_text(strip=True)
             href = link.get("href", "")
-            if keyword_match(text, pattern):
-                full_url = href if href.startswith("http") else f"{url.rstrip('/')}/{href.lstrip('/')}"
+            full_url = href if href.startswith("http") else f"{url.rstrip('/')}/{href.lstrip('/')}"
+
+            # Use a unique key to prevent duplicate entries
+            unique_key = f"{city}|{text}|{full_url}"
+            if keyword_match(text, pattern) and unique_key not in seen_jobs:
+                seen_jobs.add(unique_key)
                 jobs.append({
                     "city": city,
                     "title": text,

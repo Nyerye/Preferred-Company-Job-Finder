@@ -64,6 +64,6 @@ def send_email(jobs):
     try:
         yag = yagmail.SMTP(SENDER_EMAIL, SENDER_PASSWORD)
         yag.send(to=RECIPIENT_EMAIL, subject=subject, contents="\n".join(body_lines))
-        print(f"✅ Email sent successfully. {len(unique_jobs)} unique job(s) were found and included in the email.")
+        print(f"✅ Email sent successfully. Jobs found will be sent to email.")
     except Exception as e:
         print(f"[ERROR] Failed to send email: {e}")
