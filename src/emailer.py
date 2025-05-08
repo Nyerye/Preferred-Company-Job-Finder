@@ -32,7 +32,7 @@ print(f"[DEBUG] PASSWORD FOUND: {'✅' if SENDER_PASSWORD else '❌'}")
 print(f"[DEBUG] RECIPIENT_EMAIL: {RECIPIENT_EMAIL or '❌ MISSING'}")
 
 # FUNCTION NAME: send_email
-# DESCRIPTION: This function sends an email with the job postings using the yagmail library.
+# DESCRIPTION: This function sends an email with the first unique match for each job title.
 # PARAMETERS:
 #   - jobs: A list of job postings, where each job is a dictionary containing 'city', 'title', and 'url'.
 # RETURNS: None
@@ -49,13 +49,21 @@ def send_email(jobs):
     subject = "New IT Job Postings Found"
     body_lines = ["Here are the new job postings:\n"]
 
+    # Use a set to track unique titles and filter duplicates before counting
+    unique_jobs = {}
     for job in jobs:
+        title = job['title']
+        if title not in unique_jobs:
+            unique_jobs[title] = job  # Store the first occurrence only
+
+    # Build the email body from the unique job dictionary
+    for job in unique_jobs.values():
         body_lines.append(f"{job['city']} - {job['title']}\n{job['url']}\n")
     
     # Try to send the email using yagmail. If it fails, send an error message.
     try:
         yag = yagmail.SMTP(SENDER_EMAIL, SENDER_PASSWORD)
         yag.send(to=RECIPIENT_EMAIL, subject=subject, contents="\n".join(body_lines))
-        print("✅ Email sent successfully.")
+        print(f"✅ Email sent successfully. {len(unique_jobs)} unique job(s) were found and included in the email.")
     except Exception as e:
         print(f"[ERROR] Failed to send email: {e}")
