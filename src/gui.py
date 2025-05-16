@@ -1,3 +1,4 @@
+
 # FILE            : gui.py
 # PROJECT         : Preferred Job Finder
 # PROGRAMMER      : Nicholas Reilly
@@ -16,37 +17,41 @@ import pandas as pd
 from job_scraper import scrape_jobs
 from emailer import send_email
 
-# Use persistent location in user's AppData
 APP_DIR = Path(os.getenv("APPDATA")) / "MunicipalJobTracker"
 APP_DIR.mkdir(parents=True, exist_ok=True)
 EMPLOYER_FILE = APP_DIR / "employers.json"
 JOBS_FILE = APP_DIR / "jobs.csv"
 JOB_TITLES_FILE = APP_DIR / "job_titles.json"
 
-# Load job titles from JSON file
 def load_job_titles():
     if JOB_TITLES_FILE.exists():
         with open(JOB_TITLES_FILE, "r") as file:
             return json.load(file)
     return []
 
-# Save job titles to JSON file
 def save_job_titles(titles):
     with open(JOB_TITLES_FILE, "w") as file:
         json.dump(titles, file, indent=4)
 
-# Class: JobTrackerApp
+def load_employers():
+    if EMPLOYER_FILE.exists():
+        with open(EMPLOYER_FILE, "r") as file:
+            return json.load(file)
+    return {}
+
+def save_employers(employers):
+    with open(EMPLOYER_FILE, "w") as file:
+        json.dump(employers, file, indent=4)
+
 class JobTrackerApp:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("🌇️ Municipality Job Tracker")
+        self.root.title("🌇️ Preferred Job Tracker")
         self.root.geometry("1200x800")
         self.root.resizable(True, True)
-
         self.style = ttk.Style("flatly")
 
-        # Employer Management Section
         self.employer_frame = ttk.Labelframe(root, text="Tracked Employers", padding=10)
         self.employer_frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
 
@@ -57,7 +62,6 @@ class JobTrackerApp:
         self.tree.column("URL", width=800)
         self.tree.pack(fill=BOTH, expand=True)
 
-        # Add New Employer Section
         self.add_frame = ttk.Labelframe(root, text="➕ Add New Employer", padding=10)
         self.add_frame.pack(fill=X, padx=20, pady=10)
 
@@ -69,12 +73,9 @@ class JobTrackerApp:
         self.url_entry = ttk.Entry(self.add_frame, width=50)
         self.url_entry.grid(row=0, column=3, padx=5)
 
-        self.add_button = ttk.Button(
-        self.add_frame, text="Add Employer", command=self.add_employer, bootstyle=SUCCESS
-        )
+        self.add_button = ttk.Button(self.add_frame, text="Add Employer", command=self.add_employer, bootstyle=SUCCESS)
         self.add_button.grid(row=1, column=0, columnspan=5, pady=(10, 0))
 
-        # Remove Employer Button
         self.remove_employer_button = ttk.Button(
             self.employer_frame, 
             text="Remove Selected Employer", 
@@ -83,7 +84,6 @@ class JobTrackerApp:
         )
         self.remove_employer_button.pack(pady=5)
 
-        # Job Title Management Section
         self.title_frame = ttk.Labelframe(root, text="🔍 Manage Job Titles", padding=10)
         self.title_frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
 
@@ -110,10 +110,8 @@ class JobTrackerApp:
         self.title_listbox = Listbox(self.title_frame, width=70, height=10)
         self.title_listbox.grid(row=1, column=0, columnspan=4, padx=5, pady=10)
 
-        # Load existing job titles on startup
         self.refresh_job_title_list()
 
-        # Scraper Button
         self.scrape_button = ttk.Button(
             root, 
             text="🔍 Run Scraper + Email", 
@@ -123,6 +121,25 @@ class JobTrackerApp:
         self.scrape_button.pack(pady=10)
 
         self.refresh_employer_list()
+
+    def run_scraper_and_email(self):
+        self.scrape_button.config(text="Running...", state=DISABLED)
+        self.root.update()
+
+        all_jobs = scrape_jobs()
+
+        if all_jobs:
+            df = pd.DataFrame(all_jobs)
+            df.to_csv(JOBS_FILE, index=False)
+            try:
+                send_email(all_jobs)
+                messagebox.showinfo("Success", f"{len(all_jobs)} total jobs found and emailed successfully.")
+            except Exception as e:
+                messagebox.showerror("Email Error", f"Jobs saved but failed to send email:\n{e}")
+        else:
+            messagebox.showinfo("No Matches", "No matching jobs found.")
+
+        self.scrape_button.config(text="🔍 Run Scraper + Email", state=NORMAL)
 
     def refresh_employer_list(self):
         self.tree.delete(*self.tree.get_children())
@@ -178,24 +195,6 @@ class JobTrackerApp:
         except IndexError:
             messagebox.showwarning("No Selection", "Please select a job title to remove.")
 
-    def run_scraper_and_email(self):
-        self.scrape_button.config(text="Running...", state=DISABLED)
-        self.root.update()
-
-        jobs = scrape_jobs()
-        if jobs:
-            df = pd.DataFrame(jobs)
-            df.to_csv(JOBS_FILE, index=False)
-            try:
-                send_email(jobs)
-                messagebox.showinfo("Success", f"{len(jobs)} jobs found and emailed successfully.")
-            except Exception as e:
-                messagebox.showerror("Email Error", f"Jobs saved but failed to send email:\n{e}")
-        else:
-            messagebox.showinfo("No Matches", "No matching jobs found.")
-
-        self.scrape_button.config(text="🔍 Run Scraper + Email", state=NORMAL)
-
     def remove_employer(self):
         try:
             selected_item = self.tree.selection()[0]
@@ -208,18 +207,6 @@ class JobTrackerApp:
                 messagebox.showinfo("Removed", f"'{name}' has been removed from the tracked employers.")
         except IndexError:
             messagebox.showwarning("No Selection", "Please select an employer to remove.")
-
-    # Load employers from the JSON file
-def load_employers():
-    if EMPLOYER_FILE.exists():
-        with open(EMPLOYER_FILE, "r") as file:
-            return json.load(file)
-    return {}
-
-# Save employers to the JSON file
-def save_employers(employers):
-    with open(EMPLOYER_FILE, "w") as file:
-        json.dump(employers, file, indent=4)
 
 def launch():
     root = ttk.Window(themename="flatly")

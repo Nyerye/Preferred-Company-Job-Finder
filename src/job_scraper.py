@@ -12,6 +12,8 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from pathlib import Path
+from urllib.parse import urljoin
+
 
 __all__ = ["scrape_jobs", "load_employer_urls"]
 
@@ -82,7 +84,9 @@ def scrape_city(city: str, url: str, pattern) -> list:
         for link in soup.find_all("a"):
             text = link.get_text(strip=True)
             href = link.get("href", "")
-            full_url = href if href.startswith("http") else f"{url.rstrip('/')}/{href.lstrip('/')}"
+            
+            #Proper appending of the URL for both relative and absolute paths so they send correctly 
+            full_url = urljoin(url, href)
 
             # Use a unique key to prevent duplicate entries
             unique_key = f"{city}|{text}|{full_url}"

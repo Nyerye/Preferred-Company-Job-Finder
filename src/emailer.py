@@ -4,7 +4,6 @@
 # FIRST VERSION	: 2025-04-10
 # DESCRIPTION	: This script sends an email with job postings using the yagmail library.
 
-
 # Import the libraries required for sending the email and laoding the env credentials.
 import yagmail
 from pathlib import Path
@@ -59,11 +58,14 @@ def send_email(jobs):
     # Build the email body from the unique job dictionary
     for job in unique_jobs.values():
         body_lines.append(f"{job['city']} - {job['title']}\n{job['url']}\n")
-    
+
+    # Prepare HTML version by replacing \n with <br> and wrapping in <html> body
+    html_body = "<html><body>" + "<br>".join(body_lines) + "</body></html>"
+
     # Try to send the email using yagmail. If it fails, send an error message.
     try:
         yag = yagmail.SMTP(SENDER_EMAIL, SENDER_PASSWORD)
-        yag.send(to=RECIPIENT_EMAIL, subject=subject, contents="\n".join(body_lines))
+        yag.send(to=RECIPIENT_EMAIL, subject=subject, contents=html_body)
         print(f"✅ Email sent successfully. Jobs found will be sent to email.")
     except Exception as e:
         print(f"[ERROR] Failed to send email: {e}")
