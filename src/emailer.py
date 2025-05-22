@@ -46,7 +46,7 @@ def send_email(jobs):
 
     # Create the email subject and body
     subject = "New IT Job Postings Found"
-    body_lines = ["Here are the new job postings:\n"]
+    body_lines = ["Here are the new job postings:<br><br>"]
 
     # Use a set to track unique titles and filter duplicates before counting
     unique_jobs = {}
@@ -55,12 +55,15 @@ def send_email(jobs):
         if title not in unique_jobs:
             unique_jobs[title] = job  # Store the first occurrence only
 
-    # Build the email body from the unique job dictionary
+    # Build the HTML email body from the unique job dictionary
     for job in unique_jobs.values():
-        body_lines.append(f"{job['city']} - {job['title']}\n{job['url']}\n")
+        body_lines.append(
+            f"{job['city']} - {job['title']}<br>"
+            f"<a href='{job['url']}'>{job['url']}</a><br><br>"
+        )
 
-    # Prepare HTML version by replacing \n with <br> and wrapping in <html> body
-    html_body = "<html><body>" + "<br>".join(body_lines) + "</body></html>"
+    # Wrap in HTML tags
+    html_body = "<html><body>" + "".join(body_lines) + "</body></html>"
 
     # Try to send the email using yagmail. If it fails, send an error message.
     try:
